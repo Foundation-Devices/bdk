@@ -179,7 +179,7 @@ impl_from!(boxed rpc::RpcBlockchain, AnyBlockchain, Rpc, #[cfg(feature = "rpc")]
 ///    "url" : "ssl://electrum.blockstream.info:50002",
 ///    "retry": 2,
 ///    "stop_gap": 20,
-///    "validate_domain": false
+///    "validate_domain": true
 /// }"#,
 /// )
 /// .unwrap();
@@ -191,7 +191,7 @@ impl_from!(boxed rpc::RpcBlockchain, AnyBlockchain, Rpc, #[cfg(feature = "rpc")]
 ///         socks5: None,
 ///         timeout: None,
 ///         stop_gap: 20,
-///         validate_domain: false,
+///         validate_domain: true,
 ///     })
 /// );
 /// # }

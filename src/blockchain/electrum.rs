@@ -420,7 +420,7 @@ mod test {
                     retry: 0,
                     timeout: None,
                     stop_gap: stop_gap,
-                    validate_domain: false,
+                    validate_domain: true,
                 })
             }
         }
