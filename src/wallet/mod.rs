@@ -103,10 +103,14 @@ pub struct Wallet<D> {
 
 /// The address index selection strategy to use to derived an address from the wallet's external
 /// descriptor. See [`Wallet::get_address`]. If you're unsure which one to use use `WalletIndex::New`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AddressIndex {
     /// Return a new address after incrementing the current descriptor index.
     New,
+    /// Return address for the current descriptor index.
+    ///
+    /// Use with caution, address may have already been used.
+    Current,
     /// Return the address for the current descriptor index if it has not been used in a received
     /// transaction. Otherwise return a new address as with [`AddressIndex::New`].
     ///
@@ -268,6 +272,24 @@ where
             .map_err(|_| Error::ScriptDoesntHaveAddressForm)
     }
 
+    // Return derived address at the current index (ie. without incrementing the index) for the specified `keychain`.
+    fn get_current_address(&self, keychain: KeychainKind) -> Result<AddressInfo, Error> {
+        let current_index = self.fetch_index(keychain)?;
+
+        let address_result = self
+            .get_descriptor_for_keychain(keychain)
+            .at_derivation_index(current_index)
+            .address(self.network);
+
+        address_result
+            .map(|address| AddressInfo {
+                address,
+                index: current_index,
+                keychain,
+            })
+            .map_err(|_| Error::ScriptDoesntHaveAddressForm)
+    }
+
     // Return the the last previously derived address for `keychain` if it has not been used in a
     // received transaction. Otherwise return a new address using [`Wallet::get_new_address`].
     fn get_unused_address(&self, keychain: KeychainKind) -> Result<AddressInfo, Error> {
@@ -354,6 +376,7 @@ where
     ) -> Result<AddressInfo, Error> {
         match address_index {
             AddressIndex::New => self.get_new_address(keychain),
+            AddressIndex::Current => self.get_current_address(keychain),
             AddressIndex::LastUnused => self.get_unused_address(keychain),
             AddressIndex::Peek(index) => self.peek_address(index, keychain),
             AddressIndex::Reset(index) => self.reset_address(index, keychain),
@@ -839,7 +862,12 @@ where
         let drain_script = match params.drain_to {
             Some(ref drain_recipient) => drain_recipient.clone(),
             None => self
-                .get_internal_address(AddressIndex::New)?
+                .get_internal_address(
+                    params
+                        .change_address_index
+                        .clone()
+                        .unwrap_or(AddressIndex::New),
+                )?
                 .address
                 .script_pubkey(),
         };

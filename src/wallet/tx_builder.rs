@@ -45,11 +45,13 @@ use bitcoin::util::psbt::{self, PartiallySignedTransaction as Psbt};
 use bitcoin::{LockTime, OutPoint, Script, Sequence, Transaction};
 
 use super::coin_selection::{CoinSelectionAlgorithm, DefaultCoinSelectionAlgorithm};
+use crate::wallet::AddressIndex;
 use crate::{database::BatchDatabase, Error, Utxo, Wallet};
 use crate::{
     types::{FeeRate, KeychainKind, LocalUtxo, WeightedUtxo},
     TransactionDetails,
 };
+
 /// Context in which the [`TxBuilder`] is valid
 pub trait TxBuilderContext: std::fmt::Debug + Default + Clone {}
 
@@ -129,6 +131,7 @@ pub(crate) struct TxParams {
     pub(crate) recipients: Vec<(Script, u64)>,
     pub(crate) drain_wallet: bool,
     pub(crate) drain_to: Option<Script>,
+    pub(crate) change_address_index: Option<AddressIndex>,
     pub(crate) fee_policy: Option<FeePolicy>,
     pub(crate) internal_policy_path: Option<BTreeMap<String, Vec<usize>>>,
     pub(crate) external_policy_path: Option<BTreeMap<String, Vec<usize>>>,
@@ -565,6 +568,12 @@ impl<'a, D: BatchDatabase, Cs: CoinSelectionAlgorithm<D>, Ctx: TxBuilderContext>
     /// **Note**: by avoiding a dust limit check you may end up with a transaction that is non-standard.
     pub fn allow_dust(&mut self, allow_dust: bool) -> &mut Self {
         self.params.allow_dust = allow_dust;
+        self
+    }
+
+    /// Set what address index to use for the change output
+    pub fn change_address_index(&mut self, change_address_index: AddressIndex) -> &mut Self {
+        self.params.change_address_index = Some(change_address_index);
         self
     }
 }
